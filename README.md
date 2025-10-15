@@ -16,6 +16,26 @@ A macOS application that receives OSC (Open Sound Control) messages and triggers
 
 ### Installation
 
+#### Option 1: Standalone App (Recommended)
+
+1. **Download the latest release**:
+   - Go to [Releases](https://github.com/jeremyg58/OSCKey/releases)
+   - Download `OSCKey-v1.0.0-macos.zip`
+   - Extract the zip file
+   - Move `OSCKey.app` to your Applications folder
+
+2. **Launch the application**:
+   - Double-click `OSCKey.app`
+   - Right-click and select "Open" if you see an "unidentified developer" warning (first time only)
+   - macOS will prompt you to grant **Accessibility permissions**
+   - Click "Open System Settings" and enable the permission
+
+3. **Open the web interface**:
+   - Navigate to http://localhost:5000
+   - Configure your shortcuts
+
+#### Option 2: Run from Source
+
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/jeremyg58/OSCKey.git
