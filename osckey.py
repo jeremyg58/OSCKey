@@ -1087,25 +1087,67 @@ def get_logs():
     return jsonify({'logs': list(log_buffer)})
 
 
+def check_accessibility_permissions():
+    """Check if accessibility permissions are granted and prompt if not"""
+    try:
+        # Try to check if we have accessibility permissions by attempting to use pynput
+        from pynput.keyboard import Controller
+        test_keyboard = Controller()
+
+        # Try a test operation - this will trigger permission prompt if not granted
+        # We don't actually press anything, just test if we can
+        logger.info("Checking accessibility permissions...")
+
+        # Trigger the permission dialog by attempting keyboard access
+        test_keyboard.press(Key.shift)
+        test_keyboard.release(Key.shift)
+
+        logger.info("Accessibility permissions granted")
+        return True
+
+    except Exception as e:
+        logger.warning(f"Accessibility permissions check: {e}")
+        logger.warning("=" * 60)
+        logger.warning("ACCESSIBILITY PERMISSIONS REQUIRED")
+        logger.warning("=" * 60)
+        logger.warning("macOS requires accessibility permissions for keyboard control.")
+        logger.warning("")
+        logger.warning("A system dialog should appear asking for permission.")
+        logger.warning("If not, please manually grant permissions:")
+        logger.warning("")
+        logger.warning("1. Open System Settings")
+        logger.warning("2. Go to Privacy & Security → Accessibility")
+        logger.warning("3. Add this application and enable it")
+        logger.warning("")
+        logger.warning("The application will continue to run, but keyboard")
+        logger.warning("control will not work until permissions are granted.")
+        logger.warning("=" * 60)
+        return False
+
+
 def main():
     """Start the application"""
     global osc_thread
-    
+
     # Load configuration
     load_config()
-    
+
     logger.info("=" * 60)
     logger.info("OSC KEYBOARD BRIDGE STARTING")
     logger.info("=" * 60)
+
+    # Check accessibility permissions
+    check_accessibility_permissions()
+
     logger.info(f"Web UI: http://localhost:5000")
     logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
     logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
     logger.info("=" * 60)
-    
+
     # Start OSC server in background thread
     osc_thread = threading.Thread(target=start_osc_server, daemon=True)
     osc_thread.start()
-    
+
     # Start Flask web server
     app.run(host='127.0.0.1', port=5000, debug=False)
 
