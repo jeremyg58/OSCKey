@@ -27,12 +27,7 @@ A macOS application that receives OSC (Open Sound Control) messages and triggers
    pip3 install -r requirements.txt
    ```
 
-3. **Grant Accessibility permissions**:
-   - Open **System Settings** → **Privacy & Security** → **Accessibility**
-   - Add your **Terminal** or **Python** application
-   - Enable the checkbox
-
-4. **Run the application**:
+3. **Run the application**:
    ```bash
    python3 osckey.py
    ```
@@ -181,9 +176,12 @@ launchctl load ~/Library/LaunchAgents/com.osckey.plist
 
 ### Keys not working
 
-1. Check **Accessibility permissions** in System Settings
-2. Restart the application after granting permissions
-3. Check the logs tab in the web UI for errors
+The application automatically checks for accessibility permissions on startup. If keyboard control isn't working:
+
+1. Check the console output for permission warnings
+2. Manually verify **Accessibility permissions** in System Settings → Privacy & Security → Accessibility
+3. Restart the application after granting permissions
+4. Check the logs tab in the web UI for errors
 
 ### Port already in use
 
