@@ -18,7 +18,7 @@ A macOS application that receives OSC (Open Sound Control) messages and triggers
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/OSCKey.git
+   git clone https://github.com/jeremyg58/OSCKey.git
    cd OSCKey
    ```
 
@@ -32,7 +32,11 @@ A macOS application that receives OSC (Open Sound Control) messages and triggers
    python3 osckey.py
    ```
 
-5. **Open the web interface**:
+   On first run, macOS will prompt you to grant **Accessibility permissions**. Click "Open System Settings" and enable the permission. If the dialog doesn't appear automatically, you can grant permissions manually:
+   - Open **System Settings** → **Privacy & Security** → **Accessibility**
+   - Add your **Terminal** or **Python** application and enable it
+
+4. **Open the web interface**:
    - Navigate to http://localhost:5000
    - Configure your shortcuts
 
