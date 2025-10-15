@@ -1,0 +1,42 @@
+{
+  "osc_port": 5005,
+  "osc_ip": "0.0.0.0",
+  "custom_shortcuts": {
+    "/key/save": {
+      "modifiers": [
+        "command"
+      ],
+      "key": "s",
+      "description": "Save"
+    },
+    "/key/copy": {
+      "modifiers": [
+        "command"
+      ],
+      "key": "c",
+      "description": "Copy"
+    },
+    "/key/paste": {
+      "modifiers": [
+        "command"
+      ],
+      "key": "v",
+      "description": "Paste"
+    },
+    "/key/undo": {
+      "modifiers": [
+        "command"
+      ],
+      "key": "z",
+      "description": "Undo"
+    },
+    "/key/redo": {
+      "modifiers": [
+        "command",
+        "shift"
+      ],
+      "key": "z",
+      "description": "Redo"
+    }
+  }
+}

@@ -261,16 +261,15 @@ def press_key_combo(modifiers=None, key=None):
         # Press all modifiers
         for mod_key in modifier_keys:
             keyboard.press(mod_key)
-            time.sleep(0.05)  # Small delay between each modifier
 
-        time.sleep(0.05)  # Extra delay before main key
+        time.sleep(0.01)
 
         # Press and release the main key
         if main_key:
             keyboard.press(main_key)
             keyboard.release(main_key)
 
-        time.sleep(0.05)  # Extra delay before releasing modifiers
+        time.sleep(0.01)
 
         # Release all modifiers in reverse order
         for mod_key in reversed(modifier_keys):
