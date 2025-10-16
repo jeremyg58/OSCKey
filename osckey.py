@@ -14,7 +14,13 @@ import json
 import os
 import socket
 import subprocess
+import webbrowser
 from collections import deque
+try:
+    import rumps
+    RUMPS_AVAILABLE = True
+except ImportError:
+    RUMPS_AVAILABLE = False
 
 # In-memory log storage (stores last 500 log entries)
 log_buffer = deque(maxlen=500)
@@ -1125,31 +1131,86 @@ def check_accessibility_permissions():
         return False
 
 
+class OSCKeyApp(rumps.App):
+    """Menu bar application for OSCKey"""
+
+    def __init__(self):
+        super(OSCKeyApp, self).__init__("OSCKey", "⌨")
+
+        # Load configuration first
+        load_config()
+
+        # Build menu with config info
+        self.menu = [
+            rumps.MenuItem(f"Listening on {config['osc_ip']}:{config['osc_port']}", callback=None),
+            None,  # Separator
+            rumps.MenuItem("Open Web UI", callback=self.open_web_ui),
+        ]
+
+        logger.info("=" * 60)
+        logger.info("OSC KEYBOARD BRIDGE STARTING")
+        logger.info("=" * 60)
+
+        # Check accessibility permissions
+        check_accessibility_permissions()
+
+        logger.info(f"Web UI: http://localhost:5000")
+        logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
+        logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
+        logger.info("=" * 60)
+
+        # Start OSC server in background thread
+        osc_thread = threading.Thread(target=start_osc_server, daemon=True)
+        osc_thread.start()
+
+        # Start Flask web server in background thread
+        flask_thread = threading.Thread(target=self.start_flask, daemon=True)
+        flask_thread.start()
+
+    def start_flask(self):
+        """Start Flask web server"""
+        app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
+
+    @rumps.clicked("Open Web UI")
+    def open_web_ui(self, _):
+        """Open web UI in default browser"""
+        webbrowser.open('http://localhost:5000')
+        logger.info("Opening web UI in browser")
+
+
 def main():
     """Start the application"""
     global osc_thread
 
-    # Load configuration
-    load_config()
+    if RUMPS_AVAILABLE:
+        # Run with menu bar icon
+        OSCKeyApp().run()
+    else:
+        # Fallback to console mode if rumps not available
+        logger.warning("rumps not available, running in console mode")
+        logger.warning("Install rumps for menu bar support: pip install rumps")
 
-    logger.info("=" * 60)
-    logger.info("OSC KEYBOARD BRIDGE STARTING")
-    logger.info("=" * 60)
+        # Load configuration
+        load_config()
 
-    # Check accessibility permissions
-    check_accessibility_permissions()
+        logger.info("=" * 60)
+        logger.info("OSC KEYBOARD BRIDGE STARTING")
+        logger.info("=" * 60)
 
-    logger.info(f"Web UI: http://localhost:5000")
-    logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
-    logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
-    logger.info("=" * 60)
+        # Check accessibility permissions
+        check_accessibility_permissions()
 
-    # Start OSC server in background thread
-    osc_thread = threading.Thread(target=start_osc_server, daemon=True)
-    osc_thread.start()
+        logger.info(f"Web UI: http://localhost:5000")
+        logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
+        logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
+        logger.info("=" * 60)
 
-    # Start Flask web server
-    app.run(host='127.0.0.1', port=5000, debug=False)
+        # Start OSC server in background thread
+        osc_thread = threading.Thread(target=start_osc_server, daemon=True)
+        osc_thread.start()
+
+        # Start Flask web server
+        app.run(host='127.0.0.1', port=5000, debug=False)
 
 
 if __name__ == "__main__":

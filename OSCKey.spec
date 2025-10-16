@@ -7,7 +7,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['rumps', 'objc', 'Foundation', 'AppKit'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -56,7 +56,7 @@ app = BUNDLE(
     bundle_identifier='com.jeremyg58.osckey',
     info_plist={
         'NSHighResolutionCapable': 'True',
-        'LSBackgroundOnly': 'False',
+        'LSUIElement': '1',
         'CFBundleShortVersionString': '1.0.0',
         'CFBundleVersion': '1.0.0',
         'NSAppleEventsUsageDescription': 'OSCKey needs to send keyboard events.',
