@@ -6,7 +6,7 @@ Receives OSC messages and triggers keyboard shortcuts
 
 from pythonosc import dispatcher, osc_server
 from pynput.keyboard import Controller, Key
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, send_file
 import threading
 import time
 import logging
@@ -14,7 +14,13 @@ import json
 import os
 import socket
 import subprocess
+import webbrowser
 from collections import deque
+try:
+    import rumps
+    RUMPS_AVAILABLE = True
+except ImportError:
+    RUMPS_AVAILABLE = False
 
 # In-memory log storage (stores last 500 log entries)
 log_buffer = deque(maxlen=500)
@@ -425,6 +431,7 @@ HTML_TEMPLATE = """
 <html>
 <head>
     <title>OSC Keyboard Bridge - Configuration</title>
+    <link rel="icon" type="image/png" href="/favicon">
     <style>
         * {
             margin: 0;
@@ -1088,6 +1095,15 @@ def get_logs():
     return jsonify({'logs': list(log_buffer)})
 
 
+@app.route('/favicon')
+def favicon():
+    """Serve the favicon"""
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OSCKeyIcon.png")
+    if os.path.exists(icon_path):
+        return send_file(icon_path, mimetype='image/png')
+    return '', 404
+
+
 def check_accessibility_permissions():
     """Check if accessibility permissions are granted and prompt if not"""
     try:
@@ -1126,6 +1142,44 @@ def check_accessibility_permissions():
         return False
 
 
+class OSCKeyApp(rumps.App):
+    """Menu bar application"""
+
+    def __init__(self):
+        # Get the icon path
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OSCKeyIcon.png")
+
+        # Initialize rumps app with icon
+        super(OSCKeyApp, self).__init__(
+            "OSCKey",
+            icon=icon_path if os.path.exists(icon_path) else None,
+            quit_button=None
+        )
+
+        # Load configuration
+        load_config()
+
+        # Build menu
+        self.menu = [
+            rumps.MenuItem(f"Listening on {config['osc_ip']}:{config['osc_port']}"),
+            None,  # Separator
+            rumps.MenuItem("Open Web UI", callback=self.open_web_ui),
+            None,  # Separator
+            rumps.MenuItem("Quit", callback=self.quit_app)
+        ]
+
+        # Make the status item non-clickable
+        self.menu["Listening on " + f"{config['osc_ip']}:{config['osc_port']}"].set_callback(None)
+
+    def open_web_ui(self, _):
+        """Open the web UI in browser"""
+        webbrowser.open('http://localhost:5000')
+
+    def quit_app(self, _):
+        """Quit the application"""
+        rumps.quit_application()
+
+
 def main():
     """Start the application"""
     global osc_thread
@@ -1149,8 +1203,19 @@ def main():
     osc_thread = threading.Thread(target=start_osc_server, daemon=True)
     osc_thread.start()
 
-    # Start Flask web server
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    # Start Flask in background thread
+    flask_thread = threading.Thread(
+        target=lambda: app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False),
+        daemon=True
+    )
+    flask_thread.start()
+
+    # Start menu bar app (if rumps available)
+    if RUMPS_AVAILABLE:
+        OSCKeyApp().run()
+    else:
+        # Fallback: just run Flask (blocks)
+        flask_thread.join()
 
 
 if __name__ == "__main__":
