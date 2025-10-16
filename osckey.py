@@ -6,7 +6,7 @@ Receives OSC messages and triggers keyboard shortcuts
 
 from pythonosc import dispatcher, osc_server
 from pynput.keyboard import Controller, Key
-from flask import Flask, render_template_string, request, jsonify, send_file
+from flask import Flask, render_template_string, request, jsonify
 import threading
 import time
 import logging
@@ -14,13 +14,7 @@ import json
 import os
 import socket
 import subprocess
-import webbrowser
 from collections import deque
-try:
-    import rumps
-    RUMPS_AVAILABLE = True
-except ImportError:
-    RUMPS_AVAILABLE = False
 
 # In-memory log storage (stores last 500 log entries)
 log_buffer = deque(maxlen=500)
@@ -284,9 +278,7 @@ def press_key_combo(modifiers=None, key=None):
         logger.info(f"SUCCESS: /key/[{combo_str}]")
 
     except Exception as e:
-        import traceback
         logger.error(f"ERROR pressing key combo: {e}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 def handle_keypress(address, *args):
@@ -433,7 +425,6 @@ HTML_TEMPLATE = """
 <html>
 <head>
     <title>OSC Keyboard Bridge - Configuration</title>
-    <link rel="icon" type="image/png" href="/favicon">
     <style>
         * {
             margin: 0;
@@ -1097,15 +1088,6 @@ def get_logs():
     return jsonify({'logs': list(log_buffer)})
 
 
-@app.route('/favicon')
-def favicon():
-    """Serve the favicon"""
-    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OSCKeyIcon.png")
-    if os.path.exists(icon_path):
-        return send_file(icon_path, mimetype='image/png')
-    return '', 404
-
-
 def check_accessibility_permissions():
     """Check if accessibility permissions are granted and prompt if not"""
     try:
@@ -1144,91 +1126,31 @@ def check_accessibility_permissions():
         return False
 
 
-class OSCKeyApp(rumps.App):
-    """Menu bar application for OSCKey"""
-
-    def __init__(self):
-        # Use custom icon if available, fallback to keyboard emoji
-        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OSCKeyIcon.png")
-        if os.path.exists(icon_path):
-            super(OSCKeyApp, self).__init__("OSCKey", icon=icon_path, template=False)
-        else:
-            super(OSCKeyApp, self).__init__("OSCKey", "⌨")
-
-        # Load configuration first
-        load_config()
-
-        # Build menu with config info
-        self.menu = [
-            rumps.MenuItem(f"Listening on {config['osc_ip']}:{config['osc_port']}", callback=None),
-            None,  # Separator
-            rumps.MenuItem("Open Web UI", callback=self.open_web_ui),
-        ]
-
-        logger.info("=" * 60)
-        logger.info("OSC KEYBOARD BRIDGE STARTING")
-        logger.info("=" * 60)
-
-        # Check accessibility permissions
-        check_accessibility_permissions()
-
-        logger.info(f"Web UI: http://localhost:5000")
-        logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
-        logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
-        logger.info("=" * 60)
-
-        # Start OSC server in background thread
-        osc_thread = threading.Thread(target=start_osc_server, daemon=True)
-        osc_thread.start()
-
-        # Start Flask web server in background thread
-        flask_thread = threading.Thread(target=self.start_flask, daemon=True)
-        flask_thread.start()
-
-    def start_flask(self):
-        """Start Flask web server"""
-        app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
-
-    @rumps.clicked("Open Web UI")
-    def open_web_ui(self, _):
-        """Open web UI in default browser"""
-        webbrowser.open('http://localhost:5000')
-        logger.info("Opening web UI in browser")
-
-
 def main():
     """Start the application"""
     global osc_thread
 
-    if RUMPS_AVAILABLE:
-        # Run with menu bar icon
-        OSCKeyApp().run()
-    else:
-        # Fallback to console mode if rumps not available
-        logger.warning("rumps not available, running in console mode")
-        logger.warning("Install rumps for menu bar support: pip install rumps")
+    # Load configuration
+    load_config()
 
-        # Load configuration
-        load_config()
+    logger.info("=" * 60)
+    logger.info("OSC KEYBOARD BRIDGE STARTING")
+    logger.info("=" * 60)
 
-        logger.info("=" * 60)
-        logger.info("OSC KEYBOARD BRIDGE STARTING")
-        logger.info("=" * 60)
+    # Check accessibility permissions
+    check_accessibility_permissions()
 
-        # Check accessibility permissions
-        check_accessibility_permissions()
+    logger.info(f"Web UI: http://localhost:5000")
+    logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
+    logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
+    logger.info("=" * 60)
 
-        logger.info(f"Web UI: http://localhost:5000")
-        logger.info(f"OSC Server: {config['osc_ip']}:{config['osc_port']}")
-        logger.info(f"Custom Shortcuts Loaded: {len(config.get('custom_shortcuts', {}))}")
-        logger.info("=" * 60)
+    # Start OSC server in background thread
+    osc_thread = threading.Thread(target=start_osc_server, daemon=True)
+    osc_thread.start()
 
-        # Start OSC server in background thread
-        osc_thread = threading.Thread(target=start_osc_server, daemon=True)
-        osc_thread.start()
-
-        # Start Flask web server
-        app.run(host='127.0.0.1', port=5000, debug=False)
+    # Start Flask web server
+    app.run(host='127.0.0.1', port=5000, debug=False)
 
 
 if __name__ == "__main__":
