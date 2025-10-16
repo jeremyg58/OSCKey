@@ -34,3 +34,6 @@ osckey-env/
 
 # Future planning (not for public repo)
 FUTURE_IDEAS.md
+
+# Icon build artifacts
+*.iconset/

@@ -6,7 +6,7 @@ Receives OSC messages and triggers keyboard shortcuts
 
 from pythonosc import dispatcher, osc_server
 from pynput.keyboard import Controller, Key
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, send_file
 import threading
 import time
 import logging
@@ -430,6 +430,7 @@ HTML_TEMPLATE = """
 <html>
 <head>
     <title>OSC Keyboard Bridge - Configuration</title>
+    <link rel="icon" type="image/png" href="/favicon">
     <style>
         * {
             margin: 0;
@@ -1093,6 +1094,15 @@ def get_logs():
     return jsonify({'logs': list(log_buffer)})
 
 
+@app.route('/favicon')
+def favicon():
+    """Serve the favicon"""
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OSCKeyIcon.png")
+    if os.path.exists(icon_path):
+        return send_file(icon_path, mimetype='image/png')
+    return '', 404
+
+
 def check_accessibility_permissions():
     """Check if accessibility permissions are granted and prompt if not"""
     try:
@@ -1135,7 +1145,12 @@ class OSCKeyApp(rumps.App):
     """Menu bar application for OSCKey"""
 
     def __init__(self):
-        super(OSCKeyApp, self).__init__("OSCKey", "⌨")
+        # Use custom icon if available, fallback to keyboard emoji
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "OSCKeyIcon.png")
+        if os.path.exists(icon_path):
+            super(OSCKeyApp, self).__init__("OSCKey", icon=icon_path, template=False)
+        else:
+            super(OSCKeyApp, self).__init__("OSCKey", "⌨")
 
         # Load configuration first
         load_config()

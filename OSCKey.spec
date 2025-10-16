@@ -6,7 +6,7 @@ a = Analysis(
     ['osckey.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('OSCKeyIcon.png', '.')],
     hiddenimports=['rumps', 'objc', 'Foundation', 'AppKit'],
     hookspath=[],
     hooksconfig={},
@@ -52,7 +52,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='OSCKey.app',
-    icon=None,
+    icon='OSCKeyIcon.icns',
     bundle_identifier='com.jeremyg58.osckey',
     info_plist={
         'NSHighResolutionCapable': 'True',
