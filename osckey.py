@@ -284,7 +284,9 @@ def press_key_combo(modifiers=None, key=None):
         logger.info(f"SUCCESS: /key/[{combo_str}]")
 
     except Exception as e:
+        import traceback
         logger.error(f"ERROR pressing key combo: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
 
 
 def handle_keypress(address, *args):
@@ -315,7 +317,7 @@ def handle_keypress(address, *args):
 
     # If no args provided, try to extract key from address (e.g., /key/down -> "down")
     if not args and address.startswith('/key/'):
-        key_from_address = address[5:]  # Remove '/key/' prefix
+        key_from_address = address[5:].strip()  # Remove '/key/' prefix and clean whitespace
         if key_from_address:
             args = [key_from_address]
         else:
@@ -334,11 +336,12 @@ def handle_keypress(address, *args):
     key = None
 
     for arg in args:
-        arg_lower = str(arg).lower()
+        arg_str = str(arg).strip()  # Clean whitespace
+        arg_lower = arg_str.lower()
         if arg_lower in MODIFIERS:
-            modifiers.append(arg)
+            modifiers.append(arg_str)
         else:
-            key = arg
+            key = arg_str
             break
 
     # Log and execute the keypress
