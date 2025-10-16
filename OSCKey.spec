@@ -56,7 +56,7 @@ app = BUNDLE(
     bundle_identifier='com.jeremyg58.osckey',
     info_plist={
         'NSHighResolutionCapable': 'True',
-        'LSBackgroundOnly': 'False',
+        'LSUIElement': 'True',
         'CFBundleShortVersionString': '1.0.0',
         'CFBundleVersion': '1.0.0',
         'NSAppleEventsUsageDescription': 'OSCKey needs to send keyboard events.',
