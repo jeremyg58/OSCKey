@@ -58,6 +58,7 @@ CONFIG_FILE = "osc_keyboard_config.json"
 DEFAULT_CONFIG = {
     "osc_port": 5005,
     "osc_ip": "0.0.0.0",
+    "remote_access": False,
     "custom_shortcuts": {
         "/key/save": {
             "modifiers": ["command"],
@@ -996,8 +997,20 @@ HTML_TEMPLATE = """
                         <input type="number" id="osc-port" value="5005" min="1024" max="65535">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Save & Restart Server</button>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remote-access">
+                        <span>Enable Remote Access to Web UI</span>
+                    </label>
+                    <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">
+                        Allow other devices on the network to access this web interface. Requires app restart to take effect.
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary">Save & Restart OSC Server</button>
                 <div id="osc-status" class="status"></div>
+                <div id="remote-access-warning" class="info-box" style="display: none; margin-top: 16px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; color: #856404 !important;"><strong>Remote Access Changed:</strong> Please quit and restart the OSCKey app from the menu bar for this change to take effect.</p>
+                </div>
             </form>
         </div>
         
@@ -1133,6 +1146,10 @@ HTML_TEMPLATE = """
 
             document.getElementById('osc-ip').value = config.osc_ip;
             document.getElementById('osc-port').value = config.osc_port;
+            document.getElementById('remote-access').checked = config.remote_access || false;
+
+            // Track initial remote access state
+            initialRemoteAccess = config.remote_access || false;
 
             // Set default export filename
             const defaultFilename = `osckey-shortcuts-${new Date().toISOString().split('T')[0]}`;
@@ -1170,33 +1187,61 @@ HTML_TEMPLATE = """
             }
         }
         
+        // Track initial remote access state
+        let initialRemoteAccess = false;
+
         // Save OSC settings
         document.getElementById('osc-settings-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const data = {
+
+            const oscData = {
                 osc_ip: document.getElementById('osc-ip').value,
                 osc_port: parseInt(document.getElementById('osc-port').value)
             };
-            
-            const response = await fetch('/api/config/osc', {
+
+            const currentRemoteAccess = document.getElementById('remote-access').checked;
+            const remoteAccessData = {
+                remote_access: currentRemoteAccess
+            };
+
+            // Save OSC config
+            const oscResponse = await fetch('/api/config/osc', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
+                body: JSON.stringify(oscData)
             });
-            
-            const result = await response.json();
+
+            const oscResult = await oscResponse.json();
+
+            // Save remote access setting
+            const remoteResponse = await fetch('/api/config/remote-access', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(remoteAccessData)
+            });
+
+            const remoteResult = await remoteResponse.json();
+
             const status = document.getElementById('osc-status');
-            
-            if (result.success) {
+            const warning = document.getElementById('remote-access-warning');
+
+            if (oscResult.success && remoteResult.success) {
                 status.className = 'status success';
-                status.textContent = 'Settings saved and server restarted successfully!';
+                status.textContent = 'OSC server settings saved and restarted successfully!';
+
+                // Show warning if remote access changed
+                if (currentRemoteAccess !== initialRemoteAccess) {
+                    warning.style.display = 'block';
+                    initialRemoteAccess = currentRemoteAccess;
+                } else {
+                    warning.style.display = 'none';
+                }
             } else {
                 status.className = 'status error';
-                status.textContent = 'Error: ' + result.message;
+                status.textContent = 'Error: ' + (oscResult.message || remoteResult.message);
             }
-            
-            setTimeout(() => status.style.display = 'none', 3000);
+
+            setTimeout(() => status.style.display = 'none', 5000);
         });
         
         // Add new shortcut
@@ -1593,6 +1638,18 @@ HTML_TEMPLATE = """
             document.getElementById('toggle-icon').textContent = '🌙';
         }
 
+        // Setup remote access checkbox change listener
+        document.getElementById('remote-access').addEventListener('change', function() {
+            const warning = document.getElementById('remote-access-warning');
+            const currentValue = this.checked;
+
+            if (currentValue !== initialRemoteAccess) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        });
+
         // Load config on page load
         loadConfig();
     </script>
@@ -1615,13 +1672,27 @@ def update_osc_config():
         config['osc_ip'] = data.get('osc_ip', '127.0.0.1')
         config['osc_port'] = data.get('osc_port', 5005)
         save_config()
-        
+
         # Restart OSC server
         success = restart_osc_server()
-        
+
         return jsonify({
             'success': success,
             'message': 'Configuration updated' if success else 'Failed to restart server'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/config/remote-access', methods=['POST'])
+def update_remote_access():
+    try:
+        data = request.json
+        config['remote_access'] = data.get('remote_access', False)
+        save_config()
+
+        return jsonify({
+            'success': True,
+            'message': 'Remote access setting saved. Please restart the app for changes to take effect.'
         })
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
@@ -1860,8 +1931,9 @@ def main():
     osc_thread.start()
 
     # Start Flask in background thread
+    flask_host = '0.0.0.0' if config.get('remote_access', False) else '127.0.0.1'
     flask_thread = threading.Thread(
-        target=lambda: app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False),
+        target=lambda: app.run(host=flask_host, port=5000, debug=False, use_reloader=False),
         daemon=True
     )
     flask_thread.start()
