@@ -485,6 +485,44 @@ HTML_TEMPLATE = """
     <title>OSC Keyboard Bridge - Configuration</title>
     <link rel="icon" type="image/png" href="/favicon">
     <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-secondary: white;
+            --bg-tertiary: #f5f5f7;
+            --bg-hover: #e8e8ed;
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --border-color: #d2d2d7;
+            --accent-blue: #0071e3;
+            --accent-blue-hover: #0077ed;
+            --accent-green: #34c759;
+            --accent-green-hover: #30b350;
+            --accent-red: #ff3b30;
+            --accent-red-hover: #ff453a;
+            --accent-orange: #ff9500;
+            --conflict-bg: #fff3cd;
+            --modal-overlay: rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark-mode {
+            --bg-primary: #1d1d1f;
+            --bg-secondary: #2d2d2f;
+            --bg-tertiary: #3a3a3c;
+            --bg-hover: #48484a;
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --border-color: #48484a;
+            --accent-blue: #0a84ff;
+            --accent-blue-hover: #409cff;
+            --accent-green: #30d158;
+            --accent-green-hover: #32d75a;
+            --accent-red: #ff453a;
+            --accent-red-hover: #ff6961;
+            --accent-orange: #ff9f0a;
+            --conflict-bg: #4a3800;
+            --modal-overlay: rgba(0, 0, 0, 0.8);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -492,43 +530,45 @@ HTML_TEMPLATE = """
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: #f5f5f7;
+            background: var(--bg-primary);
             padding: 20px;
+            transition: background-color 0.3s ease;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
         h1 {
-            color: #1d1d1f;
+            color: var(--text-primary);
             margin-bottom: 10px;
             font-size: 32px;
         }
         .subtitle {
-            color: #6e6e73;
+            color: var(--text-secondary);
             margin-bottom: 30px;
             font-size: 16px;
         }
         .section {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 20px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: background-color 0.3s ease;
         }
         h2 {
-            color: #1d1d1f;
+            color: var(--text-primary);
             font-size: 24px;
             margin-bottom: 20px;
             padding-bottom: 12px;
-            border-bottom: 1px solid #d2d2d7;
+            border-bottom: 1px solid var(--border-color);
         }
         .form-group {
             margin-bottom: 20px;
         }
         label {
             display: block;
-            color: #1d1d1f;
+            color: var(--text-primary);
             font-weight: 500;
             margin-bottom: 8px;
             font-size: 14px;
@@ -536,14 +576,14 @@ HTML_TEMPLATE = """
         input[type="text"], input[type="number"], select {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid #d2d2d7;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.2s;
         }
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
             outline: none;
-            border-color: #0071e3;
+            border-color: var(--accent-blue);
         }
         .btn {
             padding: 10px 20px;
@@ -555,28 +595,28 @@ HTML_TEMPLATE = """
             transition: all 0.2s;
         }
         .btn-primary {
-            background: #0071e3;
+            background: var(--accent-blue);
             color: white;
         }
         .btn-primary:hover {
-            background: #0077ed;
+            background: var(--accent-blue-hover);
         }
         .btn-success {
-            background: #34c759;
+            background: var(--accent-green);
             color: white;
         }
         .btn-success:hover {
-            background: #30b350;
+            background: var(--accent-green-hover);
         }
         .btn-danger {
-            background: #ff3b30;
+            background: var(--accent-red);
             color: white;
         }
         .btn-danger:hover {
-            background: #ff453a;
+            background: var(--accent-red-hover);
         }
         .shortcut-item {
-            background: #f5f5f7;
+            background: var(--bg-tertiary);
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 12px;
@@ -589,17 +629,17 @@ HTML_TEMPLATE = """
         }
         .shortcut-address {
             font-family: 'Monaco', 'Courier New', monospace;
-            color: #0071e3;
+            color: var(--accent-blue);
             font-size: 14px;
             margin-bottom: 4px;
         }
         .shortcut-combo {
-            color: #1d1d1f;
+            color: var(--text-primary);
             font-weight: 500;
             font-size: 14px;
         }
         .shortcut-desc {
-            color: #6e6e73;
+            color: var(--text-secondary);
             font-size: 12px;
             margin-top: 4px;
         }
@@ -635,7 +675,7 @@ HTML_TEMPLATE = """
             align-items: center;
             gap: 6px;
             padding: 8px 12px;
-            background: #f5f5f7;
+            background: var(--bg-tertiary);
             border-radius: 6px;
             cursor: pointer;
             user-select: none;
@@ -644,17 +684,17 @@ HTML_TEMPLATE = """
             cursor: pointer;
         }
         .modifier-checkbox:hover {
-            background: #e8e8ed;
+            background: var(--bg-hover);
         }
         .info-box {
-            background: #f5f5f7;
+            background: var(--bg-tertiary);
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 20px;
-            border-left: 4px solid #0071e3;
+            border-left: 4px solid var(--accent-blue);
         }
         .info-box p {
-            color: #1d1d1f;
+            color: var(--text-primary);
             font-size: 14px;
             line-height: 1.6;
         }
@@ -672,13 +712,13 @@ HTML_TEMPLATE = """
             display: flex;
             gap: 8px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #d2d2d7;
+            border-bottom: 2px solid var(--border-color);
         }
         .tab {
             padding: 12px 24px;
             background: none;
             border: none;
-            color: #6e6e73;
+            color: var(--text-secondary);
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
@@ -687,11 +727,11 @@ HTML_TEMPLATE = """
             transition: all 0.2s;
         }
         .tab:hover {
-            color: #1d1d1f;
+            color: var(--text-primary);
         }
         .tab.active {
-            color: #0071e3;
-            border-bottom-color: #0071e3;
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
         }
         .tab-content {
             display: none;
@@ -743,11 +783,11 @@ HTML_TEMPLATE = """
         .shortcut-checkbox-list {
             max-height: 300px;
             overflow-y: auto;
-            border: 1px solid #d2d2d7;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 12px;
-            background: #fafafa;
+            background: var(--bg-tertiary);
         }
         .shortcut-checkbox-item {
             display: flex;
@@ -768,7 +808,7 @@ HTML_TEMPLATE = """
         .export-search {
             width: 100%;
             padding: 10px 12px;
-            border: 1px solid #d2d2d7;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             margin-bottom: 12px;
             font-size: 14px;
@@ -812,22 +852,22 @@ HTML_TEMPLATE = """
             margin: 20px 0;
         }
         .import-preview-table th {
-            background: #f5f5f7;
+            background: var(--bg-tertiary);
             padding: 12px;
             text-align: left;
             font-weight: 600;
-            border-bottom: 2px solid #d2d2d7;
+            border-bottom: 2px solid var(--border-color);
         }
         .import-preview-table td {
             padding: 12px;
-            border-bottom: 1px solid #e8e8ed;
+            border-bottom: 1px solid var(--bg-hover);
         }
         .import-preview-table tr.conflict {
-            background: #fff3cd;
+            background: var(--conflict-bg);
         }
         .conflict-warning {
             display: inline-block;
-            background: #ff9500;
+            background: var(--accent-orange);
             color: white;
             padding: 2px 8px;
             border-radius: 4px;
@@ -841,12 +881,62 @@ HTML_TEMPLATE = """
             justify-content: flex-end;
             margin-top: 20px;
         }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+        }
+        .header-text h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .header-text .subtitle {
+            margin: 0;
+            font-size: 14px;
+        }
+        .dark-mode-toggle {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+        }
+        .dark-mode-toggle:hover {
+            background: var(--bg-hover);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>OSC Keyboard Bridge</h1>
-        <p class="subtitle">Configure OSC settings and custom keyboard shortcuts</p>
+        <!-- Header with Logo and Dark Mode Toggle -->
+        <div class="header">
+            <div class="header-left">
+                <img src="/favicon" alt="OSCKey Logo" class="logo">
+                <div class="header-text">
+                    <h1>OSCKey</h1>
+                    <p class="subtitle">OSC to Keyboard Bridge for macOS</p>
+                </div>
+            </div>
+            <button class="dark-mode-toggle" onclick="toggleDarkMode()" id="dark-mode-toggle">
+                🌙 Dark Mode
+            </button>
+        </div>
 
         <!-- Tabs -->
         <div class="tabs">
@@ -868,7 +958,7 @@ HTML_TEMPLATE = """
                     <div class="form-group">
                         <label>Listen IP Address</label>
                         <input type="text" id="osc-ip" value="127.0.0.1">
-                        <small style="color: #6e6e73; font-size: 12px; display: block; margin-top: 4px;">
+                        <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">
                             Use 127.0.0.1 for localhost only, or 0.0.0.0 to listen on all interfaces
                         </small>
                     </div>
@@ -887,12 +977,12 @@ HTML_TEMPLATE = """
             <h2>Custom Shortcuts</h2>
             <div id="shortcuts-list"></div>
             
-            <h3 style="margin-top: 30px; margin-bottom: 16px; color: #1d1d1f; font-size: 18px;">Add New Shortcut</h3>
+            <h3 style="margin-top: 30px; margin-bottom: 16px; color: var(--text-primary); font-size: 18px;">Add New Shortcut</h3>
             <form id="add-shortcut-form">
                 <div class="form-group">
                     <label>OSC Address</label>
                     <input type="text" id="new-address" placeholder="/key/custom" required>
-                    <small style="color: #6e6e73; font-size: 12px; display: block; margin-top: 4px;">
+                    <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">
                         Must start with /key/ (e.g., /key/custom, /key/myapp/action)
                     </small>
                 </div>
@@ -918,7 +1008,7 @@ HTML_TEMPLATE = """
                 <div class="form-group">
                     <label>Key</label>
                     <input type="text" id="new-key" placeholder="s" required>
-                    <small style="color: #6e6e73; font-size: 12px; display: block; margin-top: 4px;">
+                    <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">
                         Single character (a-z, 0-9) or special key (space, enter, tab, etc.)
                     </small>
                 </div>
@@ -948,8 +1038,8 @@ HTML_TEMPLATE = """
                 </div>
                 <div class="form-group" style="margin-top: 20px;">
                     <label>Export Filename</label>
-                    <input type="text" id="export-filename" placeholder="osckey-shortcuts-2025-10-17" style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px;">
-                    <small style="color: #6e6e73; font-size: 12px; display: block; margin-top: 4px;">
+                    <input type="text" id="export-filename" placeholder="osckey-shortcuts-2025-10-17" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                    <small style="color: var(--text-secondary); font-size: 12px; display: block; margin-top: 4px;">
                         Filename without .json extension (will be added automatically)
                     </small>
                 </div>
@@ -1451,6 +1541,28 @@ HTML_TEMPLATE = """
             const config = await response.json();
             renderExportCheckboxes(config.custom_shortcuts);
         });
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggle = document.getElementById('dark-mode-toggle');
+
+            body.classList.toggle('dark-mode');
+
+            if (body.classList.contains('dark-mode')) {
+                toggle.textContent = '☀️ Light Mode';
+                localStorage.setItem('darkMode', 'enabled');
+            } else {
+                toggle.textContent = '🌙 Dark Mode';
+                localStorage.setItem('darkMode', 'disabled');
+            }
+        }
+
+        // Check for saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-mode-toggle').textContent = '☀️ Light Mode';
+        }
 
         // Load config on page load
         loadConfig();
