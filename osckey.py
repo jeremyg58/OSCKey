@@ -740,16 +740,6 @@ HTML_TEMPLATE = """
         .checkbox-label input {
             cursor: pointer;
         }
-        .export-import-section {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #d2d2d7;
-        }
-        .export-import-section h3 {
-            margin-bottom: 16px;
-            color: #1d1d1f;
-            font-size: 18px;
-        }
         .shortcut-checkbox-list {
             max-height: 300px;
             overflow-y: auto;
@@ -861,6 +851,7 @@ HTML_TEMPLATE = """
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" onclick="switchTab('config')">Configuration</button>
+            <button class="tab" onclick="switchTab('import-export')">Import/Export</button>
             <button class="tab" onclick="switchTab('logs')">Logs</button>
         </div>
 
@@ -941,11 +932,14 @@ HTML_TEMPLATE = """
                 <div id="shortcut-status" class="status"></div>
             </form>
         </div>
+        </div>
+        <!-- End Configuration Tab -->
 
-        <!-- Export/Import Section -->
-        <div class="section">
-            <div class="export-import-section">
-                <h3>Export Shortcuts</h3>
+        <!-- Import/Export Tab -->
+        <div id="import-export-tab" class="tab-content">
+            <!-- Export Section -->
+            <div class="section">
+                <h2>Export Shortcuts</h2>
                 <input type="text" id="export-search" class="export-search" placeholder="Search shortcuts to export...">
                 <div class="shortcut-checkbox-list" id="export-checkbox-list"></div>
                 <div class="selection-buttons">
@@ -953,15 +947,17 @@ HTML_TEMPLATE = """
                     <button type="button" class="btn btn-primary" onclick="selectNoneExport()">Select None</button>
                 </div>
                 <button type="button" class="btn btn-success" onclick="exportShortcuts()">Export Selected</button>
+            </div>
 
-                <h3 style="margin-top: 30px;">Import Shortcuts</h3>
+            <!-- Import Section -->
+            <div class="section">
+                <h2>Import Shortcuts</h2>
                 <input type="file" id="import-file" accept=".json" style="margin-bottom: 12px;">
                 <button type="button" class="btn btn-primary" onclick="previewImport()">Preview Import</button>
                 <div id="import-status" class="status"></div>
             </div>
         </div>
-        </div>
-        <!-- End Configuration Tab -->
+        <!-- End Import/Export Tab -->
 
         <!-- Import Preview Modal -->
         <div id="import-preview-modal" class="import-preview-modal">
