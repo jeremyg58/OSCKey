@@ -52,7 +52,9 @@ logger.addHandler(buffer_handler)
 keyboard = Controller()
 
 # Configuration file path
-CONFIG_FILE = "osc_keyboard_config.json"
+# Store config in ~/Library/Application Support/OSCKey/
+CONFIG_DIR = os.path.expanduser("~/Library/Application Support/OSCKey")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "osc_keyboard_config.json")
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -191,6 +193,9 @@ def load_config():
     """Load configuration from file"""
     global config
     try:
+        # Create config directory if it doesn't exist
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
                 loaded_config = json.load(f)
@@ -1658,6 +1663,19 @@ HTML_TEMPLATE = """
             }
 
             try {
+                // Save remote access setting first
+                const currentRemoteAccess = document.getElementById('remote-access').checked;
+                const saveResponse = await fetch('/api/config/remote-access', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ remote_access: currentRemoteAccess })
+                });
+
+                // Wait to ensure save completes
+                await saveResponse.json();
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                // Then restart
                 const response = await fetch('/api/app/restart', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'}
@@ -1666,17 +1684,17 @@ HTML_TEMPLATE = """
                 const result = await response.json();
                 if (result.success) {
                     document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: -apple-system; color: var(--text-primary);"><h2>Restarting OSCKey...</h2></div>';
-                    // Wait a moment, then try to reload
+                    // Wait longer for restart
                     setTimeout(() => {
                         location.reload();
-                    }, 2000);
+                    }, 3000);
                 }
             } catch (error) {
                 // Expected - connection will drop during restart
                 document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: -apple-system; color: var(--text-primary);"><h2>Restarting OSCKey...</h2></div>';
                 setTimeout(() => {
                     location.reload();
-                }, 2000);
+                }, 3000);
             }
         }
 
@@ -1728,15 +1746,16 @@ def update_remote_access():
         return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/app/restart', methods=['POST'])
-def restart_app():
+def restart_app_api():
     """Restart the entire application"""
     try:
         logger.info("Restarting application via web UI...")
+        logger.info(f"Current remote_access setting: {config.get('remote_access')}")
         # Use threading to allow response to be sent before restart
         def do_restart():
-            time.sleep(0.5)  # Brief delay to allow response to be sent
-            python = sys.executable
-            os.execv(python, [python] + sys.argv)
+            time.sleep(1.0)  # Longer delay to ensure all file writes complete
+            subprocess.Popen([sys.executable] + sys.argv)
+            os._exit(0)  # Force exit to restart cleanly
 
         threading.Thread(target=do_restart, daemon=True).start()
         return jsonify({'success': True, 'message': 'Application restarting...'})
@@ -1937,7 +1956,6 @@ class OSCKeyApp(rumps.App):
             rumps.MenuItem(f"Listening on {config['osc_ip']}:{config['osc_port']}"),
             None,  # Separator
             rumps.MenuItem("Open Web UI", callback=self.open_web_ui),
-            rumps.MenuItem("Restart App", callback=self.restart_app),
             None,  # Separator
             rumps.MenuItem("Quit", callback=self.quit_app)
         ]
@@ -1948,12 +1966,6 @@ class OSCKeyApp(rumps.App):
     def open_web_ui(self, _):
         """Open the web UI in browser"""
         webbrowser.open('http://localhost:5000')
-
-    def restart_app(self, _):
-        """Restart the application"""
-        logger.info("Restarting application...")
-        python = sys.executable
-        os.execv(python, [python] + sys.argv)
 
     def quit_app(self, _):
         """Quit the application"""
