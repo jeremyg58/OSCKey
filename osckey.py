@@ -507,13 +507,13 @@ HTML_TEMPLATE = """
 
         body.dark-mode {
             --bg-primary: #0F1923;
-            --bg-secondary: #182631;
-            --bg-tertiary: #1f3040;
-            --bg-hover: #2a3f52;
+            --bg-secondary: #2d2d2f;
+            --bg-tertiary: #3a3a3c;
+            --bg-hover: #48484a;
             --text-primary: #f5f5f7;
             --text-secondary: #a1a1a6;
             --text-accent: #8284ff;
-            --border-color: #2a3f52;
+            --border-color: #48484a;
             --accent-blue: #0876E5;
             --accent-blue-hover: #3d8ff0;
             --accent-green: #30d158;
