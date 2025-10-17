@@ -15,6 +15,7 @@ import os
 import socket
 import subprocess
 import webbrowser
+import datetime
 from collections import deque
 try:
     import rumps
@@ -210,6 +211,57 @@ def save_config():
         logger.info("Configuration saved")
     except Exception as e:
         logger.error(f"Error saving config: {e}")
+
+
+def validate_import_file(data):
+    """Validate imported JSON structure"""
+    if not isinstance(data, dict):
+        return False, "Invalid JSON structure"
+
+    if "osckey_export" not in data:
+        return False, "Missing osckey_export wrapper"
+
+    export_data = data["osckey_export"]
+
+    if "version" not in export_data or "shortcuts" not in export_data:
+        return False, "Missing required fields (version, shortcuts)"
+
+    shortcuts = export_data["shortcuts"]
+    if not isinstance(shortcuts, dict):
+        return False, "Shortcuts must be a dictionary"
+
+    # Validate each shortcut structure
+    for address, shortcut in shortcuts.items():
+        if not address.startswith("/key/"):
+            return False, f"Invalid address: {address}"
+        if not isinstance(shortcut, dict):
+            return False, f"Invalid shortcut data for {address}"
+        if "key" not in shortcut or "modifiers" not in shortcut:
+            return False, f"Missing key or modifiers in {address}"
+        if not isinstance(shortcut["modifiers"], list):
+            return False, f"Modifiers must be a list in {address}"
+
+    return True, None
+
+
+def detect_conflicts(import_shortcuts):
+    """Return list of addresses that already exist in config"""
+    conflicts = []
+    for address in import_shortcuts.keys():
+        if address in config['custom_shortcuts']:
+            conflicts.append(address)
+    return conflicts
+
+
+def merge_shortcuts(selected_addresses, import_data):
+    """Merge selected shortcuts into config"""
+    imported_count = 0
+    for address in selected_addresses:
+        if address in import_data:
+            config['custom_shortcuts'][address] = import_data[address]
+            imported_count += 1
+    save_config()
+    return imported_count
 
 
 def press_key_combo(modifiers=None, key=None):
@@ -688,6 +740,117 @@ HTML_TEMPLATE = """
         .checkbox-label input {
             cursor: pointer;
         }
+        .export-import-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #d2d2d7;
+        }
+        .export-import-section h3 {
+            margin-bottom: 16px;
+            color: #1d1d1f;
+            font-size: 18px;
+        }
+        .shortcut-checkbox-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: #fafafa;
+        }
+        .shortcut-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 4px;
+        }
+        .shortcut-checkbox-item input[type="checkbox"] {
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        .shortcut-checkbox-item label {
+            cursor: pointer;
+            margin: 0;
+            font-weight: normal;
+            font-size: 13px;
+        }
+        .export-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .selection-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .selection-buttons button {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+        .import-preview-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .import-preview-modal.active {
+            display: flex;
+        }
+        .import-preview-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .import-preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .import-preview-table th {
+            background: #f5f5f7;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #d2d2d7;
+        }
+        .import-preview-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e8e8ed;
+        }
+        .import-preview-table tr.conflict {
+            background: #fff3cd;
+        }
+        .conflict-warning {
+            display: inline-block;
+            background: #ff9500;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .import-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -778,8 +941,40 @@ HTML_TEMPLATE = """
                 <div id="shortcut-status" class="status"></div>
             </form>
         </div>
+
+        <!-- Export/Import Section -->
+        <div class="section">
+            <div class="export-import-section">
+                <h3>Export Shortcuts</h3>
+                <input type="text" id="export-search" class="export-search" placeholder="Search shortcuts to export...">
+                <div class="shortcut-checkbox-list" id="export-checkbox-list"></div>
+                <div class="selection-buttons">
+                    <button type="button" class="btn btn-primary" onclick="selectAllExport()">Select All</button>
+                    <button type="button" class="btn btn-primary" onclick="selectNoneExport()">Select None</button>
+                </div>
+                <button type="button" class="btn btn-success" onclick="exportShortcuts()">Export Selected</button>
+
+                <h3 style="margin-top: 30px;">Import Shortcuts</h3>
+                <input type="file" id="import-file" accept=".json" style="margin-bottom: 12px;">
+                <button type="button" class="btn btn-primary" onclick="previewImport()">Preview Import</button>
+                <div id="import-status" class="status"></div>
+            </div>
+        </div>
         </div>
         <!-- End Configuration Tab -->
+
+        <!-- Import Preview Modal -->
+        <div id="import-preview-modal" class="import-preview-modal">
+            <div class="import-preview-content">
+                <h2>Import Preview</h2>
+                <div id="import-metadata"></div>
+                <table class="import-preview-table" id="import-preview-table"></table>
+                <div class="import-actions">
+                    <button type="button" class="btn btn-primary" onclick="closeImportPreview()">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="applyImport()">Import Selected</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Logs Tab -->
         <div id="logs-tab" class="tab-content">
@@ -805,15 +1000,20 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
+        // Global variables for export/import
+        let currentImportData = null;
+        let exportCheckboxes = {};
+
         // Load current configuration
         async function loadConfig() {
             const response = await fetch('/api/config');
             const config = await response.json();
-            
+
             document.getElementById('osc-ip').value = config.osc_ip;
             document.getElementById('osc-port').value = config.osc_port;
-            
+
             renderShortcuts(config.custom_shortcuts);
+            renderExportCheckboxes(config.custom_shortcuts);
         }
         
         // Render shortcuts list
@@ -1025,6 +1225,218 @@ HTML_TEMPLATE = """
             lastLogCount = 0;
         }
 
+        // Export/Import Functions
+        function formatShortcutCombo(shortcut) {
+            const modifierStr = shortcut.modifiers.length > 0
+                ? shortcut.modifiers.map(m => m.charAt(0).toUpperCase() + m.slice(1)).join('+') + '+'
+                : '';
+            return `${modifierStr}${shortcut.key.toUpperCase()}`;
+        }
+
+        function renderExportCheckboxes(shortcuts) {
+            const list = document.getElementById('export-checkbox-list');
+            const searchTerm = document.getElementById('export-search').value.toLowerCase();
+            list.innerHTML = '';
+            exportCheckboxes = {};
+
+            for (const [address, shortcut] of Object.entries(shortcuts)) {
+                // Filter by search term
+                const matchesSearch = !searchTerm ||
+                    address.toLowerCase().includes(searchTerm) ||
+                    (shortcut.description && shortcut.description.toLowerCase().includes(searchTerm));
+
+                if (!matchesSearch) continue;
+
+                const div = document.createElement('div');
+                div.className = 'shortcut-checkbox-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `export-${address}`;
+                checkbox.checked = true;
+                exportCheckboxes[address] = checkbox;
+
+                const label = document.createElement('label');
+                label.htmlFor = `export-${address}`;
+                label.textContent = `${address} - ${formatShortcutCombo(shortcut)}`;
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                list.appendChild(div);
+            }
+        }
+
+        function selectAllExport() {
+            for (const checkbox of Object.values(exportCheckboxes)) {
+                checkbox.checked = true;
+            }
+        }
+
+        function selectNoneExport() {
+            for (const checkbox of Object.values(exportCheckboxes)) {
+                checkbox.checked = false;
+            }
+        }
+
+        async function exportShortcuts() {
+            const selected = [];
+            for (const [address, checkbox] of Object.entries(exportCheckboxes)) {
+                if (checkbox.checked) {
+                    selected.push(address);
+                }
+            }
+
+            if (selected.length === 0) {
+                alert('No shortcuts selected for export');
+                return;
+            }
+
+            const response = await fetch('/api/shortcuts/export', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({addresses: selected})
+            });
+
+            const data = await response.json();
+
+            // Trigger download
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `osckey-shortcuts-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function previewImport() {
+            const fileInput = document.getElementById('import-file');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('import-status', 'Please select a file', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/shortcuts/import/preview', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!data.valid) {
+                showStatus('import-status', `Error: ${data.error}`, 'error');
+                return;
+            }
+
+            currentImportData = data;
+            renderImportPreview(data);
+            document.getElementById('import-preview-modal').classList.add('active');
+        }
+
+        function renderImportPreview(data) {
+            const metadata = document.getElementById('import-metadata');
+            metadata.innerHTML = `
+                <p><strong>Version:</strong> ${data.metadata.version}</p>
+                <p><strong>Exported:</strong> ${data.metadata.exported_at}</p>
+                <p><strong>Total Shortcuts:</strong> ${data.metadata.count}</p>
+                <p><strong>Conflicts:</strong> ${data.conflicts.length}</p>
+            `;
+
+            const table = document.getElementById('import-preview-table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="import-select-all" checked onchange="toggleAllImport(this.checked)"></th>
+                        <th>OSC Address</th>
+                        <th>Shortcut</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="import-table-body"></tbody>
+            `;
+
+            const tbody = document.getElementById('import-table-body');
+
+            for (const [address, shortcut] of Object.entries(data.shortcuts)) {
+                const isConflict = data.conflicts.includes(address);
+                const tr = document.createElement('tr');
+                if (isConflict) tr.className = 'conflict';
+
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="import-checkbox" data-address="${address}" checked></td>
+                    <td>
+                        ${address}
+                        ${isConflict ? '<span class="conflict-warning">CONFLICT</span>' : ''}
+                    </td>
+                    <td>${formatShortcutCombo(shortcut)}</td>
+                    <td>${shortcut.description || ''}</td>
+                `;
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        function toggleAllImport(checked) {
+            document.querySelectorAll('.import-checkbox').forEach(cb => cb.checked = checked);
+        }
+
+        function closeImportPreview() {
+            document.getElementById('import-preview-modal').classList.remove('active');
+            currentImportData = null;
+        }
+
+        async function applyImport() {
+            const selected = [];
+            document.querySelectorAll('.import-checkbox:checked').forEach(cb => {
+                selected.push(cb.dataset.address);
+            });
+
+            if (selected.length === 0) {
+                alert('No shortcuts selected for import');
+                return;
+            }
+
+            const response = await fetch('/api/shortcuts/import/apply', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    shortcuts: currentImportData.shortcuts,
+                    selected: selected
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showStatus('import-status', `Imported ${result.imported} shortcuts (skipped ${result.skipped})`, 'success');
+                loadConfig(); // Refresh shortcuts list
+                closeImportPreview();
+            } else {
+                showStatus('import-status', `Error: ${result.error}`, 'error');
+            }
+        }
+
+        function showStatus(elementId, message, type) {
+            const status = document.getElementById(elementId);
+            status.textContent = message;
+            status.className = `status ${type}`;
+            setTimeout(() => {
+                status.className = 'status';
+            }, 5000);
+        }
+
+        // Add search filter listener
+        document.getElementById('export-search').addEventListener('input', async () => {
+            const response = await fetch('/api/config');
+            const config = await response.json();
+            renderExportCheckboxes(config.custom_shortcuts);
+        });
+
         // Load config on page load
         loadConfig();
     </script>
@@ -1088,6 +1500,94 @@ def delete_shortcut():
             return jsonify({'success': False, 'message': 'Shortcut not found'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/shortcuts/export', methods=['POST'])
+def export_shortcuts():
+    try:
+        data = request.json
+        addresses = data.get('addresses', 'all')
+
+        # Determine which shortcuts to export
+        if addresses == 'all':
+            shortcuts_to_export = config['custom_shortcuts']
+        else:
+            shortcuts_to_export = {
+                addr: config['custom_shortcuts'][addr]
+                for addr in addresses
+                if addr in config['custom_shortcuts']
+            }
+
+        # Build export structure
+        export_data = {
+            "osckey_export": {
+                "version": "1.0.0",
+                "exported_at": datetime.datetime.utcnow().isoformat() + "Z",
+                "count": len(shortcuts_to_export),
+                "shortcuts": shortcuts_to_export
+            }
+        }
+
+        return jsonify(export_data)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/shortcuts/import/preview', methods=['POST'])
+def import_preview():
+    try:
+        # Get uploaded file
+        if 'file' not in request.files:
+            return jsonify({'valid': False, 'error': 'No file uploaded'}), 400
+
+        file = request.files['file']
+        content = file.read().decode('utf-8')
+        data = json.loads(content)
+
+        # Validate structure
+        valid, error = validate_import_file(data)
+        if not valid:
+            return jsonify({'valid': False, 'error': error}), 400
+
+        shortcuts = data['osckey_export']['shortcuts']
+        conflicts = detect_conflicts(shortcuts)
+
+        return jsonify({
+            'valid': True,
+            'error': None,
+            'shortcuts': shortcuts,
+            'conflicts': conflicts,
+            'metadata': {
+                'version': data['osckey_export'].get('version'),
+                'exported_at': data['osckey_export'].get('exported_at'),
+                'count': len(shortcuts)
+            }
+        })
+    except json.JSONDecodeError:
+        return jsonify({'valid': False, 'error': 'Invalid JSON file'}), 400
+    except Exception as e:
+        return jsonify({'valid': False, 'error': str(e)}), 400
+
+@app.route('/api/shortcuts/import/apply', methods=['POST'])
+def import_apply():
+    try:
+        data = request.json
+        shortcuts = data.get('shortcuts', {})
+        selected = data.get('selected', [])
+
+        # Validate that we're not importing empty data
+        if not selected:
+            return jsonify({'success': False, 'error': 'No shortcuts selected'}), 400
+
+        # Merge selected shortcuts
+        imported_count = merge_shortcuts(selected, shortcuts)
+        skipped_count = len(shortcuts) - imported_count
+
+        return jsonify({
+            'success': True,
+            'imported': imported_count,
+            'skipped': skipped_count
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/api/logs')
 def get_logs():
