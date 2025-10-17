@@ -910,17 +910,41 @@ HTML_TEMPLATE = """
             font-size: 14px;
         }
         .dark-mode-toggle {
-            padding: 8px 16px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             cursor: pointer;
-            font-size: 14px;
-            color: var(--text-primary);
+        }
+        .toggle-icon {
+            font-size: 18px;
             transition: all 0.3s ease;
         }
-        .dark-mode-toggle:hover {
-            background: var(--bg-hover);
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .dark-mode-toggle:hover .toggle-switch {
+            border-color: var(--accent-blue);
+        }
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        body.dark-mode .toggle-slider {
+            left: 22px;
+            background: var(--text-primary);
         }
     </style>
 </head>
@@ -935,9 +959,12 @@ HTML_TEMPLATE = """
                     <p class="subtitle">OSC to Keyboard Bridge for macOS</p>
                 </div>
             </div>
-            <button class="dark-mode-toggle" onclick="toggleDarkMode()" id="dark-mode-toggle">
-                🌙 Dark Mode
-            </button>
+            <div class="dark-mode-toggle" onclick="toggleDarkMode()">
+                <span class="toggle-icon" id="toggle-icon">☀️</span>
+                <div class="toggle-switch">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Tabs -->
@@ -1547,15 +1574,15 @@ HTML_TEMPLATE = """
         // Dark Mode Toggle
         function toggleDarkMode() {
             const body = document.body;
-            const toggle = document.getElementById('dark-mode-toggle');
+            const icon = document.getElementById('toggle-icon');
 
             body.classList.toggle('dark-mode');
 
             if (body.classList.contains('dark-mode')) {
-                toggle.textContent = '☀️ Light Mode';
+                icon.textContent = '🌙';
                 localStorage.setItem('darkMode', 'enabled');
             } else {
-                toggle.textContent = '🌙 Dark Mode';
+                icon.textContent = '☀️';
                 localStorage.setItem('darkMode', 'disabled');
             }
         }
@@ -1563,7 +1590,7 @@ HTML_TEMPLATE = """
         // Check for saved dark mode preference
         if (localStorage.getItem('darkMode') === 'enabled') {
             document.body.classList.add('dark-mode');
-            document.getElementById('dark-mode-toggle').textContent = '☀️ Light Mode';
+            document.getElementById('toggle-icon').textContent = '🌙';
         }
 
         // Load config on page load
