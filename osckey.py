@@ -492,6 +492,7 @@ HTML_TEMPLATE = """
             --bg-hover: #e8e8ed;
             --text-primary: #1d1d1f;
             --text-secondary: #6e6e73;
+            --text-accent: #0071e3;
             --border-color: #d2d2d7;
             --accent-blue: #0071e3;
             --accent-blue-hover: #0077ed;
@@ -505,15 +506,16 @@ HTML_TEMPLATE = """
         }
 
         body.dark-mode {
-            --bg-primary: #1d1d1f;
-            --bg-secondary: #2d2d2f;
-            --bg-tertiary: #3a3a3c;
-            --bg-hover: #48484a;
+            --bg-primary: #0F1923;
+            --bg-secondary: #182631;
+            --bg-tertiary: #1f3040;
+            --bg-hover: #2a3f52;
             --text-primary: #f5f5f7;
             --text-secondary: #a1a1a6;
-            --border-color: #48484a;
-            --accent-blue: #0a84ff;
-            --accent-blue-hover: #409cff;
+            --text-accent: #8284ff;
+            --border-color: #2a3f52;
+            --accent-blue: #0876E5;
+            --accent-blue-hover: #3d8ff0;
             --accent-green: #30d158;
             --accent-green-hover: #32d75a;
             --accent-red: #ff453a;
@@ -629,7 +631,7 @@ HTML_TEMPLATE = """
         }
         .shortcut-address {
             font-family: 'Monaco', 'Courier New', monospace;
-            color: var(--accent-blue);
+            color: var(--text-accent);
             font-size: 14px;
             margin-bottom: 4px;
         }
