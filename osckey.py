@@ -506,16 +506,16 @@ HTML_TEMPLATE = """
         }
 
         body.dark-mode {
-            --bg-primary: #0F1923;
+            --bg-primary: #1d1d1f;
             --bg-secondary: #2d2d2f;
             --bg-tertiary: #3a3a3c;
             --bg-hover: #48484a;
             --text-primary: #f5f5f7;
             --text-secondary: #a1a1a6;
-            --text-accent: #8284ff;
+            --text-accent: #0a84ff;
             --border-color: #48484a;
-            --accent-blue: #0876E5;
-            --accent-blue-hover: #3d8ff0;
+            --accent-blue: #0a84ff;
+            --accent-blue-hover: #409cff;
             --accent-green: #30d158;
             --accent-green-hover: #32d75a;
             --accent-red: #ff453a;
