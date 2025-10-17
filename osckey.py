@@ -1009,7 +1009,8 @@ HTML_TEMPLATE = """
                 <button type="submit" class="btn btn-primary">Save & Restart OSC Server</button>
                 <div id="osc-status" class="status"></div>
                 <div id="remote-access-warning" class="info-box" style="display: none; margin-top: 16px; background: #fff3cd; border-left: 4px solid #ffc107;">
-                    <p style="margin: 0; color: #856404 !important;"><strong>Remote Access Changed:</strong> Please quit and restart the OSCKey app from the menu bar for this change to take effect.</p>
+                    <p style="margin: 0 0 12px 0; color: #856404 !important;"><strong>Remote Access Changed:</strong> Restart the app for this change to take effect.</p>
+                    <button onclick="restartApp()" class="btn btn-primary" style="background: #856404; border-color: #856404;">Restart Now</button>
                 </div>
             </form>
         </div>
@@ -1650,6 +1651,35 @@ HTML_TEMPLATE = """
             }
         });
 
+        // Restart application
+        async function restartApp() {
+            if (!confirm('Restart OSCKey now? This will briefly interrupt the web UI and OSC server.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/app/restart', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: -apple-system; color: var(--text-primary);"><h2>Restarting OSCKey...</h2></div>';
+                    // Wait a moment, then try to reload
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                }
+            } catch (error) {
+                // Expected - connection will drop during restart
+                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: -apple-system; color: var(--text-primary);"><h2>Restarting OSCKey...</h2></div>';
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            }
+        }
+
         // Load config on page load
         loadConfig();
     </script>
@@ -1694,6 +1724,22 @@ def update_remote_access():
             'success': True,
             'message': 'Remote access setting saved. Please restart the app for changes to take effect.'
         })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/app/restart', methods=['POST'])
+def restart_app():
+    """Restart the entire application"""
+    try:
+        logger.info("Restarting application via web UI...")
+        # Use threading to allow response to be sent before restart
+        def do_restart():
+            time.sleep(0.5)  # Brief delay to allow response to be sent
+            python = sys.executable
+            os.execv(python, [python] + sys.argv)
+
+        threading.Thread(target=do_restart, daemon=True).start()
+        return jsonify({'success': True, 'message': 'Application restarting...'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
@@ -1891,6 +1937,7 @@ class OSCKeyApp(rumps.App):
             rumps.MenuItem(f"Listening on {config['osc_ip']}:{config['osc_port']}"),
             None,  # Separator
             rumps.MenuItem("Open Web UI", callback=self.open_web_ui),
+            rumps.MenuItem("Restart App", callback=self.restart_app),
             None,  # Separator
             rumps.MenuItem("Quit", callback=self.quit_app)
         ]
@@ -1901,6 +1948,12 @@ class OSCKeyApp(rumps.App):
     def open_web_ui(self, _):
         """Open the web UI in browser"""
         webbrowser.open('http://localhost:5000')
+
+    def restart_app(self, _):
+        """Restart the application"""
+        logger.info("Restarting application...")
+        python = sys.executable
+        os.execv(python, [python] + sys.argv)
 
     def quit_app(self, _):
         """Quit the application"""
