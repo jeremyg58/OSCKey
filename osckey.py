@@ -946,6 +946,13 @@ HTML_TEMPLATE = """
                     <button type="button" class="btn btn-primary" onclick="selectAllExport()">Select All</button>
                     <button type="button" class="btn btn-primary" onclick="selectNoneExport()">Select None</button>
                 </div>
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Export Filename</label>
+                    <input type="text" id="export-filename" placeholder="osckey-shortcuts-2025-10-17" style="width: 100%; padding: 10px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 14px;">
+                    <small style="color: #6e6e73; font-size: 12px; display: block; margin-top: 4px;">
+                        Filename without .json extension (will be added automatically)
+                    </small>
+                </div>
                 <button type="button" class="btn btn-success" onclick="exportShortcuts()">Export Selected</button>
             </div>
 
@@ -1007,6 +1014,10 @@ HTML_TEMPLATE = """
 
             document.getElementById('osc-ip').value = config.osc_ip;
             document.getElementById('osc-port').value = config.osc_port;
+
+            // Set default export filename
+            const defaultFilename = `osckey-shortcuts-${new Date().toISOString().split('T')[0]}`;
+            document.getElementById('export-filename').value = defaultFilename;
 
             renderShortcuts(config.custom_shortcuts);
             renderExportCheckboxes(config.custom_shortcuts);
@@ -1287,6 +1298,14 @@ HTML_TEMPLATE = """
                 return;
             }
 
+            // Get custom filename
+            let filename = document.getElementById('export-filename').value.trim();
+            if (!filename) {
+                filename = `osckey-shortcuts-${new Date().toISOString().split('T')[0]}`;
+            }
+            // Remove .json extension if user added it
+            filename = filename.replace(/\.json$/i, '');
+
             const response = await fetch('/api/shortcuts/export', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1300,7 +1319,7 @@ HTML_TEMPLATE = """
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `osckey-shortcuts-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `${filename}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
